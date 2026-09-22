@@ -13,7 +13,7 @@ description: 当用户需要在 CloudPSS 上执行电压或电流扫频分析（
 - 阅读 [完整案例](examples/single_sweep_analysis.py) 掌握编排结构。案例以电压源为特定对象，不能把其中的元件 RID、有效值参数名或引脚当成其他元件的通用规则。
 - 只有用户询问、校验或修改 `Mag`、频段、步长、驻留时间、相序等专业参数时，才阅读 [扫频模块参数指南](references/sweep_module_parameters.md)。普通标准扫频直接使用本文的标准案例参数。
 - 普通扫频不要读取 [结果分析算法副本](references/result_analysis_algorithms.py)，也不要把其中代码复制到生成脚本；直接调用工具箱的 `parse_frequency_spectrum_result()`、`save_frequency_spectrum_result()` 和 `read_frequency_spectrum_plot_nyquist_file()`。只有用户明确要求理解、审查或修改频谱提取、结果保存、频谱图、阻尼系数、奈奎斯特曲线或谐振风险判定算法时，才读取该副本。
-- 编写临时探查脚本和正式扫频脚本前，先将本技能 `assets/` 中的 `sweepanalysis-*.whl` 安装到用户工作区当前使用的 Python 环境：`python -m pip install "<wheel 文件路径>"`。动态定位 wheel，不假设本技能位于固定路径；安装失败时停止后续流程并报告错误。安装前确认该环境 Python 版本不低于 3.12；环境没有 pip（如未播种的 uv 虚拟环境）时改用 `uv pip install "<wheel 文件路径>"`，或先 `python -m ensurepip --upgrade` 再重试。
+- 编写临时探查脚本和正式扫频脚本前，先把 `assets/` 中的 `sweepanalysis-*.whl` 安装到用户工作区当前使用的 Python 环境（需 Python ≥ 3.12）：`python -m pip install "<wheel 路径>"`，无 pip 的环境（如未播种的 uv 虚拟环境）改用 `uv pip install`。动态定位 wheel，不假设本技能位于固定路径；安装失败立即停止并报告错误。
 - 不使用已删除的 `sweep.py` 或旧模块 `SweepAnalysisToolbox.py`。
 
 ## 输入边界
@@ -73,77 +73,13 @@ description: 当用户需要在 CloudPSS 上执行电压或电流扫频分析（
 
 ### 扫频模块引脚
 
-电压注入模块和电流注入模块的引脚结构相同。`Pos`、`Neg` 是模块的两个电气接线端（均为 `3×1` 实数信号），不是结果输出端；编排时应按照工具箱的接线流程，将目标元件原有连接保存到 `Pos`，再将目标元件的待测引脚接到 `Neg`，不要把它们当作可记录的频谱通道。
-
-模块提供以下 `1×1` 实数结果输出，应使用这些引脚配置结果通道：
-
-| 引脚 | 含义 |
-| --- | --- |
-| `Freq` | 扰动频率 |
-| `Z` | 总阻抗幅值 |
-| `Zp` / `Zn` | 正边 / 负边阻抗幅值 |
-| `Ph` | 总阻抗相位 |
-| `Php` / `Phn` | 正边 / 负边阻抗相位 |
-
-两种模块的结果引脚含义完全一致；差别仅在扰动注入量，`V` 模块的 `Mag` 使用 V，`I` 模块的 `Mag` 使用 A。除非用户明确要求改变输出内容，正式脚本应保留上述七个结果通道，并保持通道名称与结果解析约定一致。
+两种模块引脚结构相同。`Pos`、`Neg` 是电气接线端（`3×1` 实数信号），不是结果输出端，接线规则见"接线机制"，不要把它们当作频谱通道。七个 `1×1` 实数结果输出引脚为：`Freq`（扰动频率）、`Z`/`Zp`/`Zn`（总/正边/负边阻抗幅值）、`Ph`/`Php`/`Phn`（总/正边/负边阻抗相位）。除非用户明确要求改变输出内容，正式脚本应保留全部七个结果通道并保持命名与结果解析约定一致；两种模块仅 `Mag` 单位不同（V 模块为 V，I 模块为 A）。
 
 ## 标准案例参数
 
-用户未明确调整扫频模块参数时，以探查确定的电压有效值参数 `target_component.args[voltage_name]` 计算基准电压，并使用以下完整字典。案例参数是编排基准，不代表对所有工程模型都最优；用户要求调整时再读取参数指南。
+标准参数字典以完整案例为单一来源：复制 `examples/single_sweep_analysis.py` 中对应注入类型的 `baseline_harmonic_args`（V/I 各一份，18 个字段），再合并用户明确提供的专业参数覆盖项。基准电压用探查确定的参数计算：`base_voltage = float(target_component.args[voltage_name])`；`Mag` 由其换算——V 型为 `base_voltage * np.sqrt(2 / 3) * 1000 * 0.03`，I 型为 `100 / base_voltage * np.sqrt(2) / 3 * 1000 * 0.03`。案例参数是编排基准，不代表对所有工程模型都最优；用户要求调整时再读取参数指南。
 
-电压注入：
-
-```python
-base_voltage = float(target_component.args[voltage_name])
-harmonic_args = {
-    "Mag": base_voltage * np.sqrt(2 / 3) * 1000 * 0.03,
-    "InitTime": 10,
-    "RampTime": 1,
-    "Sequence": 1,
-    "InitVal1": 5,
-    "EndVal1": 100,
-    "DeltaStep1": 1,
-    "DeltaTime1": 5,
-    "InitVal2": 0,
-    "EndVal2": 200,
-    "DeltaStep2": 5,
-    "DeltaTime2": 3,
-    "InitVal3": 0,
-    "EndVal3": 1000,
-    "DeltaStep3": 10,
-    "DeltaTime3": 1,
-    "RampRatio": 0.2,
-    "UnitTest": 0,
-}
-```
-
-电流注入：
-
-```python
-base_voltage = float(target_component.args[voltage_name])
-harmonic_args = {
-    "Mag": 100 / base_voltage * np.sqrt(2) / 3 * 1000 * 0.03,
-    "InitTime": 10,
-    "RampTime": 1,
-    "Sequence": 1,
-    "InitVal1": 10,
-    "EndVal1": 70,
-    "DeltaStep1": 1,
-    "DeltaTime1": 5,
-    "InitVal2": 0,
-    "EndVal2": 200,
-    "DeltaStep2": 10,
-    "DeltaTime2": 3,
-    "InitVal3": 0,
-    "EndVal3": 2000,
-    "DeltaStep3": 20,
-    "DeltaTime3": 1,
-    "RampRatio": 0.2,
-    "UnitTest": 0,
-}
-```
-
-先复制对应注入类型的完整标准字典，再合并用户明确提供的专业参数覆盖项。保留一个数值类型的 `harmonic_args` 用于校验、时长计算和结果解析；仅在传给注入元件时把值转换为字符串。
+保留一个数值类型的 `harmonic_args` 用于校验、时长计算和结果解析；仅在传给注入元件时把值转换为字符串。
 
 ## 参数所有权
 
@@ -189,6 +125,23 @@ harmonic_args = {
 - `add_outputs` 五字段含义：输出图名（如"频率分析"）、采样频率（与解析 `sample_freq` 同源）、输出类型（"compressed"）、图像宽度、输出通道 ID 列表。
 - 计算方案名和参数方案名在创建、添加输出、运行三处保持一致。
 
+## 运行与日志跟踪
+
+正式脚本运行时间较长（时长由 `end_time` 决定，标准参数下为十分钟量级），必须以后台任务运行并把输出实时写入日志文件：
+
+- 完整案例在 `main()` 开头对 stdout/stderr 启用行缓冲（`reconfigure(line_buffering=True)`），生成脚本必须保留。输出重定向到文件时 Python 默认按块缓冲，不做此设置日志会长时间不落盘；等效做法是用 `python -u` 启动。
+- 标准启动模式：
+
+  ```bash
+  cd <工作区> && nohup python3 <脚本>.py --cloudpss-model <模型路径> \
+    --component-key <元件key> --injection-type <V|I> \
+    > sweep_<元件key>_<V|I>.log 2>&1 & echo "PID=$!"
+  ```
+
+  日志文件名带元件 key 和注入类型，多次运行互不覆盖。
+- 启动后等待约 20 秒并查看日志开头（`sleep 20; head -40 <日志>`）：缺 Token、模型路径格式错误、元件未找到等立即失败都会在前几行暴露。跟踪进度用 `tail -f`，进度行约每 10 秒输出一次当前仿真时间与百分比。
+- 正常结束以日志末尾出现"=== 扫频流程完成 ==="标记为准，随后可从日志读取保存路径和谐振风险结论；需要中止时 `kill <PID>`。
+
 ## 输出、安全与验证
 
 标准输出包含频谱 JSON、原始波形 HTML、四张诊断 HTML，以及至少含 runner ID、 `harmonic_args`、频谱数据、保存路径和谐振风险的结构化返回值。
@@ -200,11 +153,4 @@ harmonic_args = {
 - 普通任务不得导入 `references/result_analysis_algorithms.py`。用户要求修改分析算法时，读取其中代码，识别采样窗口、通道约定、数据结构、绘图和风险判定之间的依赖，再按用户指定的范围实施修改。
 - 元件、参数或引脚无法可靠识别时保留明确错误并向用户确认，不伪造结果。
 
-完成后用 `compile()` 和 `scripts/validate_sweep_script.py` 静态检查，并确认正式脚本：
-
-1. 业务输入不从环境变量读取；
-2. 使用探查确认的 `voltage_name` 和 `tested_pin`，且运行前再次校验；
-3. `end_time`、引脚映射、通道 ID 和结果对象均由最终配置或真实返回值产生；
-4. 只有用户明确要求真实执行时才启动正式扫频仿真。
-
-静态检查通过不保证指定模型、网络连接或远程服务一定可用。
+完成后用 `compile()` 和 `scripts/validate_sweep_script.py` 静态检查；校验器规则与本文各节不变量一致，未通过先修复再重验。只有用户明确要求真实执行时才启动正式扫频仿真。静态检查通过不保证指定模型、网络连接或远程服务一定可用。

@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 import os
+import sys
 import time
 from collections.abc import Mapping
 from pathlib import Path
@@ -128,6 +129,13 @@ def main(
     这里只展示标准案例常用的可选项。其他公开 API 参数或配置字段应按
     ``references/toolbox_api.md`` 中的真实签名扩展，不要透传未知键。
     """
+    # 后台运行（nohup、输出重定向）时保持行缓冲，日志才能实时写入文件。
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(line_buffering=True)
+        except (AttributeError, OSError):
+            pass
+
     required_values = {
         "cloudpss_model": cloudpss_model,
         "component_key": component_key,
@@ -325,6 +333,7 @@ def main(
     }
     print(saved_files)
     print("是否有谐振风险:", result["resonance_risk"])
+    print("=== 扫频流程完成 ===")
     return result
 
 

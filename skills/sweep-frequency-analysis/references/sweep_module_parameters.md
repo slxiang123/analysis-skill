@@ -50,7 +50,7 @@
 
 ## 标准案例的既定裁定
 
-- 标准案例（`SKILL.md` 和完整案例）的 `Sequence` 固定为 `1`（正序阻抗），与 `src/sweepanalysis/sim_result_analysis.py` 参考流程一致；宽频阻抗扫描通常关注正序网络特性。用户未指明时不要静默改回 `0`。
+- 标准案例（完整案例 `examples/single_sweep_analysis.py`）的 `Sequence` 固定为 `1`（正序阻抗），与 `src/sweepanalysis/sim_result_analysis.py` 参考流程一致；宽频阻抗扫描通常关注正序网络特性。用户未指明时不要静默改回 `0`。
 - I 型标准频段为 `10–70 / 200 / 2000 Hz`。`src/sweepanalysis/sim_result_analysis.py` 中更窄的 `10–40 / 60 / 80 Hz` 属于特定实验配置，不是标准案例；用户要求该频段时作为显式覆盖项处理。
 
 ## 向用户解释和追问

@@ -147,6 +147,11 @@ def validate(path: Path) -> list[str]:
     if re.search(r"read_frequency_spectrum_plot_nyquist_file\([^)]*show\s*=\s*True", source, re.S):
         errors.append("脚本强制显示诊断图形；应将 show 绑定到配置项")
 
+    if "line_buffering" not in source and "flush=True" not in source:
+        errors.append(
+            "脚本未启用行缓冲输出；后台运行（nohup/重定向）时日志无法实时写入文件"
+        )
+
     if "save_frequency_spectrum_result" in source and re.search(
         r"(?:impedance|admittance)\s*['\"]?\s*:", source
     ):
