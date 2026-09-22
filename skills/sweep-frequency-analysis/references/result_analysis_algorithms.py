@@ -63,14 +63,14 @@ def parse_frequency_spectrum_result(
 ) -> dict[str, list[Any]]:
     """从扫频仿真结果中解析频率、阻抗幅值和相位。
 
-    根据三段扫频参数定位每个频率点的稳态采样窗口，对正序、负序和
-    综合阻抗及相位通道求平均，生成可保存和绘图的频谱数据。
+    按三段扫频参数定位每个频点的稳态采样窗口，对正序、负序和综合
+    阻抗及相位通道求平均。
 
     Returns:
-        包含频率 ``F``、阻抗幅值 ``Z`` 和相位 ``Ph`` 的字典。
+        含 ``F``（频率）、``Z``（阻抗幅值）和 ``Ph``（相位）的字典。
 
     Raises:
-        ValueError: 采样频率无效、输出通道缺失或结果样本数量不足。
+        ValueError: 采样频率或平均窗口无效、输出通道缺失或样本不足时。
     """
     if sample_freq <= 0:
         raise ValueError("sample_freq 必须大于 0")
@@ -238,18 +238,17 @@ def save_frequency_spectrum_result(
         Field(description="保存文件使用的统一时间戳；未指定时自动生成")
     ] = None,
 ) -> dict[str, str]:
-    """将解析后的频谱数据保存为 JSON 文件。
+    """校验并规范化频谱数据，保存为带时间戳的 JSON 文件。
 
-    保存前会校验并规范化 ``F``、``Z`` 和 ``Ph`` 三组数据，然后按
-    ``save_path/project_key`` 归档。传入 ``timestamp`` 时，文件名使用
-    调用方提供的统一时间戳；未传入时才由本方法自动生成。
+    结果按 ``save_path/project_key`` 归档；``timestamp`` 未提供时
+    自动生成。
 
     Returns:
-        包含 ``json`` 键的字典，其值为已保存 JSON 结果文件的路径。
+        ``{"json": <已保存文件路径>}``。
 
     Raises:
-        ValueError: 频谱字段缺失、数组形状不正确或频率点数量不一致时抛出。
-        OSError: 结果目录或 JSON 文件无法创建、写入时抛出。
+        ValueError: 频谱字段缺失、形状错误或频率点数不一致时。
+        OSError: 目录或文件无法写入时。
     """
     # 先统一输入数据的类型和形状，避免生成结构不完整的结果文件。
     frequency, impedance, phase = _normalize_frequency_spectrum_data(
@@ -300,23 +299,20 @@ def read_frequency_spectrum_plot_nyquist_file(
         Field(description="保存文件使用的统一时间戳；未指定时自动生成")
     ] = None,
 ) -> dict[str, Any]:
-    """读取频谱并生成阻抗、相位、阻尼系数和奈奎斯特图。
+    """读取频谱并生成阻抗、相位、阻尼系数和奈奎斯特图，判断谐振风险。
 
-    ``source`` 可以是内存中的频谱字典，也可以是此前保存的 JSON
-    文件。提供 ``html_dir`` 时，四张分析图会分别保存为带时间戳的
-    Plotly HTML。对同一仿真流程，应传入与 JSON 和原始波形相同的
-    ``timestamp``。
+    ``source`` 为频谱字典或已保存的 JSON 文件路径；提供 ``html_dir``
+    时四张图分别保存为带时间戳的 Plotly HTML。
 
     Returns:
-        包含 ``magnitude``、``phase``、``damping`` 和 ``nyquist``
-        四个 Plotly 图形对象，以及 ``html_files`` 文件路径映射和
-        ``resonance_risk`` 谐振风险判断结果的字典。未要求保存时，
-        ``html_files`` 为空字典。
+        含 ``magnitude``/``phase``/``damping``/``nyquist`` 图形对象、
+        ``html_files`` 路径映射和 ``resonance_risk`` 判断结果的字典；
+        未指定 ``html_dir`` 时 ``html_files`` 为空字典。
 
     Raises:
-        TypeError: ``source`` 不是频谱数据映射或文件路径时抛出。
-        ValueError: 频谱字段缺失、数组形状不正确或频率点数量不一致时抛出。
-        OSError: 输入 JSON 无法读取或分析图 HTML 无法写入时抛出。
+        TypeError: ``source`` 类型不受支持时。
+        ValueError: 频谱内容无效时。
+        OSError: 文件无法读写时。
     """
     if isinstance(source, Mapping):
         spectrum_data = source

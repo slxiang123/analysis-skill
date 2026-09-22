@@ -8,6 +8,8 @@
 from sweepanalysis.sweep_analysis_toolbox import SweepAnalysisToolbox
 ```
 
+除 `set_config`、`get_runner_logs` 和两个类方法外，各方法均要求先调用 `set_initial_conditions()` 获取模型，否则会在访问 `project` 时抛出 `AttributeError`。
+
 ## 连接与模型初始化
 
 ### `set_config`
@@ -40,7 +42,7 @@ from sweepanalysis.sweep_analysis_toolbox import SweepAnalysisToolbox
 
 副作用：设置实例的 `project`、通道索引和画布状态，并可能转换当前内存模型的连接关系。
 
-异常：令牌、API 地址、用户名或模型标识缺失，以及模型或拓扑初始化失败时抛出 `RuntimeError`。
+异常：令牌、API 地址、用户名或模型标识缺失，或拓扑初始化失败时抛出 `RuntimeError`。
 
 ## 画布、元件与通道
 
@@ -59,7 +61,7 @@ from sweepanalysis.sweep_analysis_toolbox import SweepAnalysisToolbox
 
 副作用：将新画布追加到当前模型 revision 的画布列表。
 
-异常：参数不是非空字符串时抛出 `ValueError`；模型未初始化时抛出 `RuntimeError`。
+异常：参数不是非空字符串时抛出 `ValueError`。
 
 ---
 
@@ -72,8 +74,6 @@ from sweepanalysis.sweep_analysis_toolbox import SweepAnalysisToolbox
 返回：`None`
 
 副作用：更新当前模型的画布列表及实例布局状态 `pos`。
-
-异常：尚未调用 `set_initial_conditions()` 获取模型时抛出 `RuntimeError`。
 
 ---
 
@@ -116,7 +116,7 @@ from sweepanalysis.sweep_analysis_toolbox import SweepAnalysisToolbox
 - 第一个元素：CloudPSS 生成的元件 ID。
 - 第二个元素：本次添加使用的标签。
 
-异常：画布未初始化时可能抛出 `KeyError`；模型未初始化或 CloudPSS 不接受元件配置时可能抛出 `RuntimeError` 或 `ValueError`。
+异常：画布尚未初始化布局时抛出 `KeyError`。
 
 ---
 
@@ -137,7 +137,7 @@ from sweepanalysis.sweep_analysis_toolbox import SweepAnalysisToolbox
 - 第一个元素：输出通道元件 ID。
 - 第二个元素：输出通道标签。
 
-异常：输出画布、模型或通道索引尚未初始化时可能抛出 `KeyError` 或 `RuntimeError`。
+异常：输出画布尚未初始化布局时抛出 `KeyError`。
 
 ## 计算方案与运行
 
@@ -157,7 +157,7 @@ from sweepanalysis.sweep_analysis_toolbox import SweepAnalysisToolbox
 
 副作用：将计算方案添加到当前模型。
 
-异常：方案类型不受支持时抛出 `ValueError`；模型未初始化时底层操作可能抛出 `RuntimeError`。
+异常：方案类型不受支持时抛出 `ValueError`。
 
 ---
 
@@ -177,8 +177,6 @@ from sweepanalysis.sweep_analysis_toolbox import SweepAnalysisToolbox
 
 副作用：将参数方案添加到当前模型。
 
-异常：模型未初始化时底层操作可能抛出 `RuntimeError`。
-
 ---
 
 ### `add_outputs`
@@ -196,7 +194,7 @@ from sweepanalysis.sweep_analysis_toolbox import SweepAnalysisToolbox
 
 - 新增配置在该方案 `output_channels` 列表中的零基索引。
 
-异常：找不到方案或方案不是 EMTP/EMTPS 类型时抛出 `ValueError`；模型未初始化时可能抛出 `RuntimeError`。
+异常：找不到方案或方案不是 EMTP/EMTPS 类型时抛出 `ValueError`。
 
 ---
 
@@ -221,7 +219,7 @@ from sweepanalysis.sweep_analysis_toolbox import SweepAnalysisToolbox
 
 副作用：提交远程仿真并等待执行，可能产生时间和计算费用。
 
-异常：找不到计算方案或参数方案时抛出 `ValueError`；多次启动失败或发生不可恢复运行错误时抛出 `RuntimeError`。
+异常：找不到计算方案或参数方案时抛出 `ValueError`；启动重试 5 次仍失败时抛出 `RuntimeError`。
 
 ---
 
@@ -235,8 +233,6 @@ from sweepanalysis.sweep_analysis_toolbox import SweepAnalysisToolbox
 
 - 运行器日志记录列表。
 - 尚未创建运行器时返回空列表。
-
-异常：运行器已创建但结果服务不可用时，底层 SDK 可能抛出 `RuntimeError`。
 
 ## 绘图与结果处理
 
@@ -364,8 +360,6 @@ from sweepanalysis.sweep_analysis_toolbox import SweepAnalysisToolbox
 - 以 GraphQL 查询别名为键、元件定义数据为值的字典。
 - `rids` 为空时返回空字典。
 
-异常：GraphQL 请求失败或响应结构不符合预期时，底层 SDK 可能抛出 `RuntimeError`。
-
 ---
 
 ### `generate_parameter_dict`
@@ -384,5 +378,3 @@ from sweepanalysis.sweep_analysis_toolbox import SweepAnalysisToolbox
 
 - `parameter_dict`：按元件 RID 保存元件名称和参数定义。
 - `pin_dict`：按元件 RID 保存引脚定义。
-
-异常：项目或元件定义无法从 CloudPSS 获取时，底层 SDK 可能抛出 `RuntimeError`。

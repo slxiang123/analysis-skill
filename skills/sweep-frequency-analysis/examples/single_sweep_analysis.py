@@ -263,7 +263,6 @@ def main(
             "n_cpu": n_cpu,
         },
     )
-    toolbox.create_job("power-flow", name="Sweep_潮流计算")
     toolbox.create_config(name=config_name)
     toolbox.add_outputs(
         job_name,
