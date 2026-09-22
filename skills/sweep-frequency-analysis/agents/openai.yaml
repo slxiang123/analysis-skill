@@ -1,0 +1,6 @@
+interface:
+  display_name: "扫频分析"
+  short_description: "探查元件并编排单次 CloudPSS 扫频分析"
+  default_prompt: "使用 $sweep-frequency-analysis 探查目标元件并创建或修改一次 CloudPSS 扫频分析脚本。"
+policy:
+  allow_implicit_invocation: true
