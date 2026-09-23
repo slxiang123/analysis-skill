@@ -1,0 +1,6 @@
+interface:
+  display_name: "N-1暂态稳定分析"
+  short_description: "执行 CloudPSS 电力系统 N-1 暂态稳定性评估（单次或批量）"
+  default_prompt: "使用 $n-1-transient-stability 对指定 CloudPSS 电力系统模型执行 N-1 暂态稳定性分析（单次，或随机/指定元件清单/全元件扫描的批量）并解释结果。"
+policy:
+  allow_implicit_invocation: true
