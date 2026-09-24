@@ -15,6 +15,7 @@ description: 当用户需要在 CloudPSS 上执行、编写或解释一次或批
 - 只有用户询问判据阈值、结果布局、HDF5 数据集或结果解读细节时，才阅读 [结果布局与判据](references/result_analysis.md)。普通分析直接使用本文的紧凑判据。
 - 普通分析不要读取 [结果分析算法副本](references/result_analysis_algorithms.py)，也不要把其中代码复制到生成脚本；直接调用工具箱的 `extract_and_check_data()` 和 `save_flow_emt_hdf5()`。只有用户明确要求自定义结果分析算法、修改稳定性判据、单位换算或 HDF5 布局时，才读取该副本。
 - 使用已安装的 `n_1analysis` 包；不把技能目录加入 `sys.path`，不复制工具箱源码，不创建第二套故障或解析实现。
+- 结果目录由应用脚本显式解析并通过 `save_path` 传给工具箱：未设置 `N1_SAVE_PATH` 时，默认保存到脚本文件同级的 `results/`；设置相对 `N1_SAVE_PATH` 时，也相对脚本目录解析；设置绝对路径时直接使用该路径。不要依赖工具箱安装位置或当前工作目录推断默认结果目录。
 - 编写临时探查脚本和正式分析脚本前，先把 `assets/` 中的 `n_1analysis-*.whl` 安装到用户工作区当前使用的 Python 环境（需 Python ≥ 3.12）：`python -m pip install "<wheel 路径>"`，无 pip 的环境（如未播种的 uv 虚拟环境）改用 `uv pip install`。动态定位 wheel，不假设本技能位于固定路径；安装失败立即停止并报告错误。
 
 ## 输入边界
@@ -180,7 +181,7 @@ description: 当用户需要在 CloudPSS 上执行、编写或解释一次或批
 
 ## 输出、安全与验证
 
-标准输出包含 `analysis_result.json`、`data/flow_result.h5`、`data/emt_result.h5`、`plots/` 下四张 HTML，以及包含 runner ID、故障参数、潮流结果、三判据和文件路径的结构化返回值。每次运行使用独立目录 `results/{project_key}/runs/{run_id}/`。批量运行额外在 `results/{project_key}/batches/{batch_id}/` 写入批次汇总（`batch_result.json`、`batch_summary.csv`、`scenarios.json`），每场景仍占用一个 `runs/{batch_id}__{scenario_id}/` 目录。
+标准输出包含 `analysis_result.json`、`data/flow_result.h5`、`data/emt_result.h5`、`plots/` 下四张 HTML，以及包含 runner ID、故障参数、潮流结果、三判据和文件路径的结构化返回值。应用脚本未设置 `N1_SAVE_PATH` 时，每次运行使用脚本同级 `results/{project_key}/runs/{run_id}/`；批量运行额外在脚本同级 `results/{project_key}/batches/{batch_id}/` 写入批次汇总（`batch_result.json`、`batch_summary.csv`、`scenarios.json`），每场景仍占用一个 `runs/{batch_id}__{scenario_id}/` 目录。skill 示例中的 `_resolve_save_path()` 展示了该规则。
 
 - 不硬编码、打印或复制 Token，不读取 `.env` 内容。
 - 临时探查只读；正式脚本会在内存中修改获取的模型并提交远程计算（不回写云端工作区），产生计算成本。用户仅要求生成脚本时，完成探查后只做静态验证，不运行正式脚本。

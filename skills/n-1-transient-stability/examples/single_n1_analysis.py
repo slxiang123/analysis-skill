@@ -12,6 +12,7 @@ import argparse
 import os
 import sys
 import time
+from pathlib import Path
 from typing import Any
 
 from n_1analysis import N1AnalysisToolbox
@@ -29,6 +30,17 @@ MEASUREMENTS = (
     ("model/CloudPSS/SyncGeneratorRouter", "wr_o", "GeneratorSpeed"),
     ("model/CloudPSS/SyncGeneratorRouter", "theta_o", "GeneratorAngle"),
 )
+
+
+def _resolve_save_path(
+    configured: str | os.PathLike[str] | None = None,
+) -> Path:
+    """解析本示例的结果目录，默认使用脚本同级的 results。"""
+    value = configured or os.getenv("N1_SAVE_PATH")
+    path = Path(value).expanduser() if value else Path("results")
+    if not path.is_absolute():
+        path = Path(__file__).resolve().parent / path
+    return path.resolve()
 
 
 def _validate_inputs(
@@ -102,6 +114,7 @@ def run_scenario(
     ``run_batch(scenario_runner=...)`` 的场景函数。
     """
     started = time.time()
+    save_path = _resolve_save_path(save_path)
     username, project_key = _validate_inputs(
         cloudpss_model,
         end_time,
@@ -333,6 +346,7 @@ def main(
     v_adjust_ratio: float = 0.1,
     show_logs: bool = True,
     show_plots: bool = False,
+    save_path: str | os.PathLike[str] | None = None,
 ) -> dict[str, Any]:
     """运行一次真实 N-1 分析；运行会编辑远程模型并产生计算成本。"""
     # 后台运行（nohup、输出重定向）时保持行缓冲，日志才能实时写入文件。
@@ -355,6 +369,7 @@ def main(
     result = run_scenario(
         cloudpss_model,
         scenario,
+        save_path=_resolve_save_path(save_path),
         end_time=end_time,
         step_time=step_time,
         sample_freq=sample_freq,
@@ -389,6 +404,10 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--fault-start-time", type=float)
     parser.add_argument("--cut-time", type=float)
     parser.add_argument("--fault-type", type=int)
+    parser.add_argument(
+        "--save-path",
+        help="结果根目录；相对路径相对本脚本目录，缺省为脚本同级 results",
+    )
     parser.add_argument("--end-time", type=float, default=30.0)
     parser.add_argument("--step-time", type=float, default=0.00005)
     parser.add_argument("--sample-freq", type=int, default=200)
@@ -406,6 +425,7 @@ if __name__ == "__main__":
         fault_start_time=cli_args.fault_start_time,
         cut_time=cli_args.cut_time,
         fault_type=cli_args.fault_type,
+        save_path=cli_args.save_path,
         end_time=cli_args.end_time,
         step_time=cli_args.step_time,
         sample_freq=cli_args.sample_freq,

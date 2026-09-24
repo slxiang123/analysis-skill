@@ -22,6 +22,7 @@ import argparse
 import os
 import sys
 import time
+from pathlib import Path
 from typing import Any
 
 from n_1analysis import N1AnalysisToolbox
@@ -39,6 +40,17 @@ MEASUREMENTS = (
     ("model/CloudPSS/SyncGeneratorRouter", "wr_o", "GeneratorSpeed"),
     ("model/CloudPSS/SyncGeneratorRouter", "theta_o", "GeneratorAngle"),
 )
+
+
+def _resolve_save_path(
+    configured: str | os.PathLike[str] | None = None,
+) -> Path:
+    """解析本示例的结果目录，默认使用脚本同级的 results。"""
+    value = configured or os.getenv("N1_SAVE_PATH")
+    path = Path(value).expanduser() if value else Path("results")
+    if not path.is_absolute():
+        path = Path(__file__).resolve().parent / path
+    return path.resolve()
 
 
 def _validate_inputs(
@@ -113,6 +125,7 @@ def run_scenario(
     save_path/seed 以及 runner_kwargs 的仿真参数。
     """
     started = time.time()
+    save_path = _resolve_save_path(save_path)
     username, project_key = _validate_inputs(
         cloudpss_model,
         end_time,
@@ -367,6 +380,7 @@ def main(
     v_adjust_ratio: float = 0.1,
     show_logs: bool = True,
     show_plots: bool = False,
+    save_path: str | os.PathLike[str] | None = None,
 ) -> dict[str, Any]:
     """执行一次批量 N-1 分析；每个场景都会编辑远程模型并产生计算成本。"""
     # 后台运行（nohup、输出重定向）时保持行缓冲，日志才能实时写入文件。
@@ -397,6 +411,7 @@ def main(
         cloudpss_model,
         scenarios,
         scenario_runner=run_scenario,
+        save_path=_resolve_save_path(save_path),
         runner_kwargs={
             "end_time": end_time,
             "step_time": step_time,
@@ -429,6 +444,10 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--mode", choices=["random", "keys", "all"], default="random")
     parser.add_argument("--count", type=int, default=2, help="random 模式的场景数")
     parser.add_argument("--trans-keys", help="keys 模式的元件列表，逗号分隔")
+    parser.add_argument(
+        "--save-path",
+        help="结果根目录；相对路径相对本脚本目录，缺省为脚本同级 results",
+    )
     parser.add_argument("--seed", type=int)
     parser.add_argument(
         "--backend", choices=["sequential", "ray"], default="sequential"
@@ -454,6 +473,7 @@ if __name__ == "__main__":
             if cli_args.trans_keys
             else None
         ),
+        save_path=cli_args.save_path,
         seed=cli_args.seed,
         backend=cli_args.backend,
         max_workers=cli_args.max_workers,

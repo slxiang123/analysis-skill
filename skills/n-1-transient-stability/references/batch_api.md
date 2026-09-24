@@ -55,13 +55,13 @@
 | max_workers | int | 2 | ray 后端的并行任务数；CloudPSS 对单 Token 的并发作业配额未知，未与平台确认前不要调大 |
 | stop_on_error | bool | False | True 时首个失败场景后保存部分汇总并抛 RuntimeError；ray 后端要等全部任务返回后才检查 |
 | batch_id | str 或 None | None | 批次标识；缺省 {时间戳}_{8位uuid}，只能含字母/数字/下划线/连字符/点 |
-| save_path | str/PathLike 或 None | None | 本地结果根目录 |
+| save_path | str/PathLike 或 None | None | 本地结果根目录；应用脚本应显式解析，skill 示例默认使用脚本同级 `results/` |
 | seed | int 或 None | None | 第 i 个场景使用 seed + i |
 
 **场景函数契约**（见 `demo_n1.run_scenario` 与 skill 示例的实现）：
 
 - 签名：`scenario_runner(cloudpss_model, scenario, *, token, api_url, run_id, save_path, seed, **runner_kwargs)`。run_batch 按关键字传入全部保留参数与 runner_kwargs。
-- 隔离不变量：函数内部必须新建 `N1AnalysisToolbox` 实例执行 12 阶段流程（故障设置对单次模型拉取一次性生效，实例间绝不共享状态），并把 `run_id`/`save_path` 透传给三个保存方法，使每场景产物落在 `results/{project_key}/runs/{run_id}/`。
+- 隔离不变量：函数内部必须新建 `N1AnalysisToolbox` 实例执行 12 阶段流程（故障设置对单次模型拉取一次性生效，实例间绝不共享状态），并把 `run_id`/`save_path` 透传给三个保存方法，使每场景产物落在传入结果根目录下的 `{project_key}/runs/{run_id}/`。
 - 返回 dict 约定键：`fault_params`（实际故障五元组）、`stability_result`（含 voltage_ok、frequency_ok、power_angle_ok）、`saved_files`（含 analysis_json）、`run_id`、`run_dir`、`runner_id`；缺失的键按空值记入批次汇总。
 
 返回：dict（batch_result），包含 `schema_version=1`、`batch_id`、`created_at`、`project`（model/project_key）、`config`（backend/max_workers/stop_on_error/seed/scenario_count/runner_kwargs）、`scenarios`（每场景记录，含 scenario_id、label、status、fault_params、runner_id、run_id、run_dir、analysis_json、stability 三判据、overall_pass、elapsed_seconds、error、error_type）、`summary`（total/succeeded/failed/passed/failed_stability）、`elapsed_seconds` 和 `artifacts`。config.backend 记录实际生效的后端（可能已从 ray 回退为 sequential）。
@@ -78,7 +78,7 @@
 |---|---|---|---|
 | batch_result | dict | 必填 | run_batch 组装的汇总字典 |
 | scenario_specs | list[ScenarioSpec] 或 None | None（关键字） | 提供时额外写入 scenarios.json（运行前场景清单审计快照） |
-| save_path | str/PathLike 或 None | None（关键字） | 本地结果根目录 |
+| save_path | str/PathLike 或 None | None（关键字） | 本地结果根目录；由应用脚本解析后传入 |
 
 返回：dict，包含 `batch_dir`、`batch_json`、`batch_csv`，提供 scenario_specs 时另含 `scenarios_json`。
 

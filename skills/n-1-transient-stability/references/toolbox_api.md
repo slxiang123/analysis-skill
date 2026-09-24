@@ -295,7 +295,7 @@
 | P_low | float | 1.0 | 潮流随机乘数下限 |
 | P_high | float | 1.0 | 潮流随机乘数上限 |
 | timestamp | str | None | 统一文件时间戳 |
-| save_path | str/PathLike | None | 本地结果根目录；缺省为项目根目录/results |
+| save_path | str/PathLike | None | 本地结果根目录；应用脚本应显式传入。skill 示例缺省为脚本同级 `results/`，相对路径也相对脚本目录解析 |
 | run_id | str | None | 本次运行标识；缺省自动生成 |
 
 前置条件：pf_result 已存在，runner.result 至少四张图。
@@ -304,7 +304,7 @@
 
 文件数据集：潮流文件包含 P_low、P_high、pf_setting、bus_result、acline_result；暂态文件包含 initial_state、bus_voltage_data、power_data、frequency_data、power_angle_data。
 
-工具箱默认使用项目根目录下的 results；每次运行使用独立的 results/{project_key}/runs/{run_id}/ 目录。应用脚本不应新增结果目录环境变量。
+工具箱负责使用传入的 `save_path` 创建独立的 `runs/{run_id}/` 目录；应用脚本必须显式解析结果根目录，不能依赖工具箱安装位置或当前工作目录。skill 示例默认使用脚本同级 `results/`，并允许用 `N1_SAVE_PATH` 或 `--save-path` 覆盖。
 
 ### save_analysis_result
 
